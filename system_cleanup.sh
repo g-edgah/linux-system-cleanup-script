@@ -113,30 +113,35 @@ echo ""
 echo -e "${BLUE}Checking for temporary files...${NC}"
 sleep 1
 echo ""
-echo -e "${GREEN}temporary files:${NC}"
-sudo du -h -sh /var/tmp | awk '{print "    "$0}'
-sudo du -h -sh /tmp/ | awk '{print "    "$0}'
-echo ""
+#check if temporary files take up any storage space
+if [[ $(sudo du -s /var/tmp | cut -f1) -gt 0 ]] || [[ $(sudo du -s /tmp | cut -f1) -gt 0 ]]; then
+	echo -e "${GREEN}temporary files:${NC}"
+	sudo du -h -sh /var/tmp | awk '{print "    "$0}'
+	sudo du -h -sh /tmp/ | awk '{print "    "$0}'
+	echo ""
 
-
-#Deleting temporary files
-while true; do
-	read -p "Delete temporary files? [Y/n] " -r
-	echo "" 
-	
-	if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
-		echo -e "${RED}Deleting temporary files${NC}"
-		#sudo find /tmp -type f -delete
+	#Deleting temporary files
+	while true; do
+		read -p "Delete temporary files? [Y/n] " -r
+		echo "" 
 		
-		sleep 1
-		break
-	elif [[ $REPLY =~ [N/n]$ ]]; then
-		echo -e "${RED}You have selected to keep temporary files${NC}"
-		break
-	else 
-		echo -e "${RED}Invalid input $REPLY. Please try again${NC}"
-	fi
-done
+		if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
+			echo -e "${RED}Deleting temporary files${NC}"
+			#sudo find /tmp -type f -delete
+			#sudo find /var -type f -delete
+			
+			sleep 1
+			break
+		elif [[ $REPLY =~ [N/n]$ ]]; then
+			echo -e "${RED}You have selected to keep temporary files${NC}"
+			break
+		else 
+			echo -e "${RED}Invalid input $REPLY. Please try again${NC}"
+		fi
+	done
+else
+	echo -e "${RED}You don't have any temporary files${NC}"
+fi
 echo""
 echo""
 
@@ -145,34 +150,40 @@ echo""
 echo -e "${BLUE}Checking for cache...${NC}"
 sleep 1
 echo ""
-echo -e "${GREEN}Cache:${NC}"
-sudo du -h -sh /var/cache | awk '{print "    "$0}'
-sudo du -h -sh ~/.cache | awk '{print "    "$0}'
-sudo du -h -sh ~/.local/share/Trash | awk '{print "    "$0}'
-echo ""
+if [[ $(sudo du -h -sh /var/cache/apt/archives/ | cut -f1) -gt 0]] || [[ $(sudo du -h -sh ~/.cache -gt 0 | cut -f1) -gt 0]] || [[$(sudo du -h -sh ~/.local/share/Trash | cut -f1) -gt 0]] || [[$(sudo du -h -sh ~/.Thumbnails| cut -f1) -gt 0]]; then
 
-#Deleting cache
-while true; do
-	read -p "Delete cache? [Y/n] " -r
-	echo "" 
-	
-	if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
-		echo -e "${RED}Deleting cache...${NC}"
-		#rm -rf ~/.cache/*
-		#sudo apt clean
-		#sudo apt autoclean
-		#sudo apt autoremove
-		#sudo find /var/cache -type f -mtime +14 -delete 2>/dev/null
-		#rm -rf ~/.local/share/Trash/*
-		sleep 1.5
-		break
-	elif [[ $REPLY =~ [N/n]$ ]]; then
-		echo -e "${RED}You have selected to keep cache${NC}"
-		break
-	else 
-		echo -e "${RED}Invalid input $REPLY. Please try again${NC}"
-	fi
-done
+	echo -e "${GREEN}Cache:${NC}"
+	sudo du -h -sh /var/cache/apt/archives/ | awk '{print "    "$0}'
+	sudo du -h -sh ~/.cache | awk '{print "    "$0}'
+	sudo du -h -sh ~/.local/share/Trash | awk '{print "    "$0}'
+	sudo du -h -sh ~/.Thumbnails| awk '{print "    "$0}'
+	echo ""
+
+	#Deleting cache
+	while true; do
+		read -p "Delete cache? [Y/n] " -r
+		echo "" 
+		
+		if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
+			echo -e "${RED}Deleting cache...${NC}"
+			#rm -rf ~/.cache/*
+			#sudo apt clean
+			#sudo apt autoclean
+			#sudo apt autoremove
+			#sudo find /var/cache/apt/archives/ -type f -mtime +14 -delete 2>/dev/null
+			#rm -rf ~/.local/share/Trash/*
+			sleep 1
+			break
+		elif [[ $REPLY =~ [N/n]$ ]]; then
+			echo -e "${RED}You have selected to keep cache${NC}"
+			break
+		else 
+			echo -e "${RED}Invalid input $REPLY. Please try again${NC}"
+		fi
+	done
+else 
+	echo -e "${RED}You don't have any cache${NC}"
+fi
 echo ""
 echo ""
 

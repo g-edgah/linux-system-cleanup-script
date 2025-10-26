@@ -54,16 +54,13 @@ if sudo find /var/log -name "*.log" -mtime +7 | grep -q .; then
 	sudo find /var/log -name "*.gz" -mtime +7 -exec du -h {} \; | sort -hr | awk '{print "    "$0}'
 	#deleting logs older than 7 days
 	while true; do
-		read -p "Delete outdated log files and journal entries? (older than 7 days) [Y/n] " -r
+		read -p "Delete outdated log files? (older than 7 days) [Y/n] " -r
 		echo "" 
 		
 		if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
 			echo -e "${RED}Deleting outdated logs...${NC}"
 			#sudo find /var/log -name "*.log" -mtime +7 -delete
 			#sudo find /var/log -name "*.gz" -mtime +7 -delete
-			echo ""
-			echo -e "${RED}Deleting journal entries older than 7 days...${NC}"
-			#sudo journalctl --vacuum-time=7d
 			sleep 1.5
 			break
 		elif [[ $REPLY =~ [N/n]$ ]]; then
@@ -83,35 +80,34 @@ echo ""
 echo -e "${BLUE}checking for outdated journal entries...${NC}"
 sleep 1
 echo ""
-if sudo sudo journalctl --until "7 days ago"| grep -q .; then
+
+if sudo journalctl --until "7 days ago" --quiet --no-pager | grep -q .; then
 	echo -e "${GREEN}You have outdated journal entries${NC}"
 	
-	#deleting logs older than 7 days
+	#deleting journal entries older than 7 days
 	while true; do
-		read -p "Delete outdated log files and journal entries? (older than 7 days) [Y/n] " -r
+		read -p "Delete outdated journal entries? (older than 7 days) [Y/n] " -r
 		echo "" 
 		
 		if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
-			echo -e "${RED}Deleting outdated logs...${NC}"
-			#sudo find /var/log -name "*.log" -mtime +7 -delete
-			#sudo find /var/log -name "*.gz" -mtime +7 -delete
-			echo ""
 			echo -e "${RED}Deleting journal entries older than 7 days...${NC}"
 			#sudo journalctl --vacuum-time=7d
 			sleep 1.5
 			break
 		elif [[ $REPLY =~ [N/n]$ ]]; then
-			echo -e "${RED}You have selected to keep outdated logs${NC}"
+			echo -e "${RED}You have selected to keep outdated journal entries${NC}"
 			break
 		else 
 			echo -e "${RED}Invalid input $REPLY. Please try again${NC}"
 		fi
 	done
+
 else 
-	echo -e "${GREEN}No outdated log files${NC}"
+	echo -e "${GREEN}No outdated journal entries${NC}"
 fi
 echo ""
 echo ""
+
 
 #tmp files cleanup
 echo -e "${BLUE}Checking for temporary files...${NC}"
@@ -121,6 +117,7 @@ echo -e "${GREEN}temporary files:${NC}"
 sudo du -h -sh /var/tmp | awk '{print "    "$0}'
 sudo du -h -sh /tmp/ | awk '{print "    "$0}'
 echo ""
+
 
 #Deleting temporary files
 while true; do
@@ -142,6 +139,7 @@ while true; do
 done
 echo""
 echo""
+
 
 #cache cleanup
 echo -e "${BLUE}Checking for cache...${NC}"

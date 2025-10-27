@@ -47,35 +47,36 @@ echo ""
 echo -e "${BLUE}checking for outdated logs...${NC}"
 sleep 1
 echo ""
-if sudo find /var/log -name "*.log" -mtime +7 | grep -q .; then
-	echo -e "${GREEN}logs older than 7 days:${NC}"
-	sudo find /var/log -name "*.log" -mtime +7 -exec du -h {} \; | sort -hr | awk '{print "    "$0}'
-	sudo find /var/log -name "*.gz" -mtime +7 -exec du -h {} \; | sort -hr | awk '{print "    "$0}'
+if sudo find /var/log \( -name "*.log" -o -name "*.gz" \) -mtime +0 | grep -q .; then
+	echo -e "${GREEN}logs older than 6 days:${NC}"
+	sudo find /var/log \( -name "*.log" -o -name "*.gz" \) -mtime +0 -exec du -h {} \; | sort -hr | awk '{print "    "$0}'
 
 	#deleting logs older than 7 days
 	while true; do
-		read -p "Delete outdated log files? (older than 7 days) [Y/n] " -r
+		read -p "Delete outdated log files? (older than 0 days) [Y/n] " -r
 		echo "" 
 		
 		if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
 			echo -e "${RED}Deleting outdated logs...${NC}"
-			#sudo find /var/log -name "*.log" -mtime +7 -delete
-			#sudo find /var/log -name "*.gz" -mtime +7 -delete
+			#sudo find /var/log -name "*.log" -mtime +28 -delete
+			#sudo find /var/log -name "*.gz" -mtime +30 -delete
 
-			log_files=($(sudo find /var/log \( -name "*.log" -o -name "*.gz" \) -mtime +7))
+			log_files=($(sudo find /var/log \( -name "*.log" -o -name "*.gz" \) -mtime +0)
+			echo "${log_files}")
 			all_log_files=${#log_files[@]}
+			#echo "Found $all_log_files log files:"
 			removed_logs=0
 
 			for file in "${log_files[@]}"; do
-				#sudo rm -f "$file"
+				sudo rm -f "$file"
 				removed_logs=$((removed_logs + 1))
 				
-				local percent_logs_removed=$((removed_logs * 100 / all_log_files))
+				percent_logs_removed=$((removed_logs * 100 / all_log_files))
 
-				filled=$((percent_log_removed / 2))
+				filled=$((percent_logs_removed / 2))
 				empty=$((50 - filled))
 
-				printf "\r${GREEN}[%-50s]${NC} %d%%" "$(printf '█%.0s' $(seq 1 $filled))$(printf '░%.0s' $(seq 1 $empty))" "$i" 
+				printf "\r${GREEN}▌%-50s▐${NC} %d%%" "$(printf '█%.0s' $(seq 1 $filled))$([[ $empty -gt 0 ]] && printf '░%.0s' $(seq 1 $empty))" "$percent_logs_removed" 
 
 			done
 			sleep 0.3
@@ -170,7 +171,7 @@ if [[ $(sudo du -s /var/tmp | cut -f1) -gt 0 ]] || [[ $(sudo du -s /tmp | cut -f
 				#sudo rm -f "$file"
 				removed_tmp_files=$((removed_tmp_files + 1))
 				
-				local percent__tmp_removed=$((removed_tmp_files * 100 / all_tmp_files))
+				percent__tmp_removed=$((removed_tmp_files * 100 / all_tmp_files))
 				
 				#if [[$i -eq 20]]; then
 					#sudo find /tmp -type f -delete
@@ -230,7 +231,7 @@ if [[ $(sudo du -s /var/cache/apt/archives/ | cut -f1) -gt 0 ]] || [[ $(sudo du 
 				#sudo rm -f "$file"
 				removed_cache=$((removed_cache + 1))
 				
-				local percent_cache_removed=$((removed_cache * 100 / all_cache_files))
+				percent_cache_removed=$((removed_cache * 100 / all_cache_files))
 				
 				#if [[percent_cache_removed -eq 20]]; then
 					#sudo apt clean

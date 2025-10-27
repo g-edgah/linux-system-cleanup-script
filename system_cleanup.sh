@@ -98,26 +98,26 @@ fi
 echo ""
 echo ""
 
-#checking for journal entries older than 7 days
+#checking for journal entries older than 40 days
 echo -e "${BLUE}checking for outdated journal entries...${NC}"
 sleep 1
 echo ""
 
-if sudo journalctl --until "7 days ago" --quiet --no-pager | grep -q .; then
+if sudo journalctl --until "20 days ago" --quiet --no-pager | grep -q .; then
 	echo -e "${GREEN}You have outdated journal entries${NC}"
 	
-	#deleting journal entries older than 7 days
+	#deleting journal entries older than 25 days
 	while true; do
-		read -p "Delete outdated journal entries? (older than 7 days) [Y/n] " -r
+		read -p "Delete outdated journal entries? (older than 20 days) [Y/n] " -r
 		echo "" 
 		
 		if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
-			echo -e "${RED}Deleting journal entries older than 7 days...${NC}"
+			echo -e "${RED}Deleting journal entries older than 20 days...${NC}"
 
 			for i in {0..100}; do
 				
 				if [[ $i -eq 10 ]]; then
-					sudo journalctl --vacuum-time=7d 
+					sudo journalctl --vacuum-time=20d &> /dev/null 
 				fi
 
 				filled=$((i / 2))
@@ -149,7 +149,7 @@ echo -e "${BLUE}Checking for temporary files...${NC}"
 sleep 1
 echo ""
 #check if temporary files take up any storage space
-if [[ $(sudo du -s /var/tmp | cut -f1) -gt 0 ]] || [[ $(sudo du -s /tmp | cut -f1) -gt 0 ]]; then
+if sudo find /tmp /var/tmp -type f 2>/dev/null | grep -q .; then
 	echo -e "${GREEN}temporary files:${NC}"
 	sudo du -h -sh /var/tmp | awk '{print "    "$0}'
 	sudo du -h -sh /tmp/ | awk '{print "    "$0}'
@@ -163,9 +163,10 @@ if [[ $(sudo du -s /var/tmp | cut -f1) -gt 0 ]] || [[ $(sudo du -s /tmp | cut -f
 		if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
 			echo -e "${RED}Deleting temporary files...${NC}"
 
-			tmp_files=($(sudo find /tmp /var/tmp -type f))
+			tmp_files=($(sudo find /tmp /var/tmp -type f 2>/dev/null))
 			all_tmp_files=${#tmp_files[@]}
 			removed_tmp_files=0
+		
 
 			for file in "${tmp_files[@]}"; do
 				sudo rm -f "$file"
@@ -191,7 +192,7 @@ if [[ $(sudo du -s /var/tmp | cut -f1) -gt 0 ]] || [[ $(sudo du -s /tmp | cut -f
 		fi
 	done
 else
-	echo -e "${RED}You don't have any temporary files${NC}"
+	echo -e "${GREEN}You don't have any temporary files${NC}"
 fi
 echo""
 echo""
@@ -201,7 +202,7 @@ echo""
 echo -e "${BLUE}Checking for cache...${NC}"
 sleep 1
 echo ""
-if [[ $(sudo du -s /var/cache/apt/archives/ | cut -f1) -gt 0 ]] || [[ $(sudo du -s ~/.cache | cut -f1) -gt 0 ]] || [[ $(sudo du -s ~/.local/share/Trash | cut -f1) -gt 0 ]] || [[ $(sudo du -s ~/.Thumbnails| cut -f1) -gt 0 ]]; then
+if sudo find ~/.cache ~/.local/share/Trash /var/cache/apt/archives/ -type f | grep -q .; then
 
 	echo -e "${GREEN}Cache:${NC}"
 	sudo du -sh /var/cache/apt/archives/ | awk '{print "    "$0}'
@@ -221,19 +222,11 @@ if [[ $(sudo du -s /var/cache/apt/archives/ | cut -f1) -gt 0 ]] || [[ $(sudo du 
 			all_cache_files=${#cache_files[@]}
 			removed_cache=0
 
-			for file in "${tmp_files[@]}"; do
-				#sudo rm -f "$file"
+			for file in "${cache_files[@]}"; do
+				sudo rm -f "$file"
 				removed_cache=$((removed_cache + 1))
 				
 				percent_cache_removed=$((removed_cache * 100 / all_cache_files))
-				
-				#if [[percent_cache_removed -eq 20]]; then
-					#sudo apt clean
-				#elif [[percent_cache_removed  -eq 40]]; then
-					#sudo apt autoclean
-				#elif [[percent_cache_removed  -eq 60]]; then
-					#sudo apt autoremove
-				#fi
 
 				filled=$((percent_cache_removed / 2))
 				empty=$((50 - filled))
@@ -245,10 +238,7 @@ if [[ $(sudo du -s /var/cache/apt/archives/ | cut -f1) -gt 0 ]] || [[ $(sudo du 
 
 			echo ""
 			echo -e "${RED}Cleaning apt cache...${NC}"
-	
-			sudo apt clean
-			sudo apt autoclean
-			sudo apt autoremove
+			sudo apt autoremove -y
 			
 			sleep 0.3
 			echo ""
@@ -286,16 +276,40 @@ while true; do
 	echo "" 
 	
 	if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
-		echo -e "${RED}updating system...${NC}"
-		#sudo apt full-upgrade
+		echo -e "${RED}upgrading system...${NC}"
+		sudo apt full-upgrade -y
+		echo ""
+		echo ""
 		
 		while true; do
-			read -p "System upgrade done. Reboot system now? [Y/n] " -r
+			read -p "System upgrade done. Cleanup outdated packages? [Y/n] " -r
 			echo "" 
 			
 			if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
-				echo -e "${RED}Rebooting...${NC}"
-				#sudo reboot
+				echo -e "${RED}Removing outdated packages..${NC}"
+				sudo apt autoremove -y
+				echo ""
+				echo ""
+				
+				#reboot
+				while true; do
+					read -p "Outdated packages removed. Reboot system now? [Y/n] " -r
+					echo "" 
+					
+					if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
+						echo -e "${RED}Rebooting...${NC}"
+						sleep 0.5
+						sudo systemctl reboot -i
+						break
+					elif [[ $REPLY =~ ^[Nn]$ ]]; then
+						echo -e "${RED}exiting...${NC}"
+						sleep 1
+						break
+					else 
+						echo -e "${RED}Invalid input $REPLY. Please try again${NC}"
+					fi
+				done
+				
 				break
 			elif [[ $REPLY =~ ^[Nn]$ ]]; then
 				echo -e "${RED}exiting...${NC}"
@@ -314,3 +328,6 @@ while true; do
 		echo -e "${RED}Invalid input $REPLY. Please try again${NC}"
 	fi
 done
+
+
+

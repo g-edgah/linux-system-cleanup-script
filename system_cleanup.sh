@@ -47,13 +47,13 @@ echo ""
 echo -e "${BLUE}checking for outdated logs...${NC}"
 sleep 1
 echo ""
-if sudo find /var/log \( -name "*.log" -o -name "*.gz" \) -mtime +0 | grep -q .; then
-	echo -e "${GREEN}logs older than 6 days:${NC}"
-	sudo find /var/log \( -name "*.log" -o -name "*.gz" \) -mtime +0 -exec du -h {} \; | sort -hr | awk '{print "    "$0}'
+if sudo find /var/log \( -name "*.log" -o -name "*.gz" \) -mtime +7 | grep -q .; then
+	echo -e "${GREEN}logs older than 7 days:${NC}"
+	sudo find /var/log \( -name "*.log" -o -name "*.gz" \) -mtime +7 -exec du -h {} \; | sort -hr | awk '{print "    "$0}'
 
 	#deleting logs older than 7 days
 	while true; do
-		read -p "Delete outdated log files? (older than 0 days) [Y/n] " -r
+		read -p "Delete outdated log files? (older than 7 days) [Y/n] " -r
 		echo "" 
 		
 		if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
@@ -61,7 +61,7 @@ if sudo find /var/log \( -name "*.log" -o -name "*.gz" \) -mtime +0 | grep -q .;
 			#sudo find /var/log -name "*.log" -mtime +28 -delete
 			#sudo find /var/log -name "*.gz" -mtime +30 -delete
 
-			log_files=($(sudo find /var/log \( -name "*.log" -o -name "*.gz" \) -mtime +0)
+			log_files=($(sudo find /var/log \( -name "*.log" -o -name "*.gz" \) -mtime +7)
 			echo "${log_files}")
 			all_log_files=${#log_files[@]}
 			#echo "Found $all_log_files log files:"
@@ -123,7 +123,7 @@ if sudo journalctl --until "7 days ago" --quiet --no-pager | grep -q .; then
 				filled=$((i / 2))
 				empty=$((50 - filled))
 
-				printf "\r${GREEN}[%-50s]${NC} %d%%" "$(printf '█%.0s' $(seq 1 $filled))$(printf '░%.0s' $(seq 1 $empty))" "$i" 
+				printf "\r${GREEN}▌%-50s▐${NC} %d%%" "$(printf '█%.0s' $(seq 1 $filled))$([[ $empty -gt 0 ]] && printf '░%.0s' $(seq 1 $empty))" "$i" 
 			done
 			sleep 0.3
 			echo ""
@@ -161,28 +161,22 @@ if [[ $(sudo du -s /var/tmp | cut -f1) -gt 0 ]] || [[ $(sudo du -s /tmp | cut -f
 		echo "" 
 		
 		if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
-			echo -e "${RED}Deleting temporary files${NC}"
+			echo -e "${RED}Deleting temporary files...${NC}"
 
 			tmp_files=($(sudo find /tmp /var/tmp -type f))
 			all_tmp_files=${#tmp_files[@]}
 			removed_tmp_files=0
 
 			for file in "${tmp_files[@]}"; do
-				#sudo rm -f "$file"
+				sudo rm -f "$file"
 				removed_tmp_files=$((removed_tmp_files + 1))
 				
-				percent__tmp_removed=$((removed_tmp_files * 100 / all_tmp_files))
-				
-				#if [[$i -eq 20]]; then
-					#sudo find /tmp -type f -delete
-				#elif [[$i -eq 40]]; then
-					#sudo find /var/tmp -type f -delete
-				#fi
+				percent_tmp_removed=$((removed_tmp_files * 100 / all_tmp_files))
 
 				filled=$((percent_tmp_removed / 2))
 				empty=$((50 - filled))
 
-				printf "\r${GREEN}[%-50s]${NC} %d%%" "$(printf '█%.0s' $(seq 1 $filled))$(printf '░%.0s' $(seq 1 $empty))" "$i" 
+				printf "\r${GREEN}▌%-50s▐${NC} %d%%" "$(printf '█%.0s' $(seq 1 $filled))$([[ $empty -gt 0 ]] && printf '░%.0s' $(seq 1 $empty))" "$percent_tmp_removed"
 
 			done
 			sleep 0.3
@@ -244,9 +238,18 @@ if [[ $(sudo du -s /var/cache/apt/archives/ | cut -f1) -gt 0 ]] || [[ $(sudo du 
 				filled=$((percent_cache_removed / 2))
 				empty=$((50 - filled))
 
-				printf "\r${GREEN}[%-50s]${NC} %d%%" "$(printf '█%.0s' $(seq 1 $filled))$(printf '░%.0s' $(seq 1 $empty))" "$i" 
+				printf "\r${GREEN}▌%-50s▐${NC} %d%%" "$(printf '█%.0s' $(seq 1 $filled))$([[ $empty -gt 0 ]] && printf '░%.0s' $(seq 1 $empty))" "$percent_cache_removed" 
 
 			done
+			sleep 0.1
+
+			echo ""
+			echo -e "${RED}Cleaning apt cache...${NC}"
+	
+			sudo apt clean
+			sudo apt autoclean
+			sudo apt autoremove
+			
 			sleep 0.3
 			echo ""
 			echo -e "${RED}Done${NC}"

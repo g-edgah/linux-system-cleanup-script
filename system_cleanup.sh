@@ -320,7 +320,7 @@ if sudo find ~/.cache ~/.local/share/Trash /var/cache/apt/archives/ -type f | gr
 	done
 else 
 	echo -e "${RED}You don't have any cache${NC}"
-	
+
 	#log
 	echo "$(date): No cache found" | sudo tee -a "$log_file" > /dev/null
 fi
@@ -357,7 +357,7 @@ while true; do
 		echo ""
 
 		#log
-		echo "$(date): Updated system" | sudo tee -a "$log_file" > /dev/null
+		echo "$(date): System upgraded" | sudo tee -a "$log_file" > /dev/null
 		
 		while true; do
 			read -p "System upgrade done. Cleanup outdated packages? [Y/n] " -r
